@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>れいぞうこ管理</title>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --mint: #1D9E75;
+    --mint-light: #E1F5EE;
+    --mint-dark: #0F6E56;
+    --ice: #E6F1FB;
+    --ice-dark: #185FA5;
+    --amber: #EF9F27;
+    --amber-light: #FAEEDA;
+    --amber-dark: #854F0B;
+    --red: #E24B4A;
+    --red-light: #FCEBEB;
+    --red-dark: #A32D2D;
+    --bg: #F7F9F8;
+    --card: #ffffff;
+    --text: #1a2e25;
+    --text-muted: #6b8c7a;
+    --border: rgba(29,158,117,0.15);
+    --radius: 16px;
+    --radius-sm: 10px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Zen Maru Gothic', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* background decoration */
+  body::before {
+    content: '';
+    position: fixed; top: 0; left: 0; right: 0; height: 280px;
+    background: linear-gradient(160deg, #c8f0e0 0%, #d8edf8 100%);
+    z-index: 0;
+  }
+
+  .container { max-width: 640px; margin: 0 auto; padding: 1.5rem 1rem 4rem; position: relative; z-index: 1; }
+
+  /* header */
+  .header { text-align: center; padding: 1.5rem 0 2rem; }
+  .header .icon { font-size: 48px; margin-bottom: 8px; display: block; }
+  .header h1 { font-size: 26px; font-weight: 700; color: var(--mint-dark); letter-spacing: 0.04em; }
+  .header p { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+
+  /* stats */
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 1.5rem; }
+  .stat { background: var(--card); border-radius: var(--radius); padding: 1rem; text-align: center; box-shadow: 0 2px 12px rgba(29,158,117,0.08); }
+  .stat-num { font-size: 28px; font-weight: 700; }
+  .stat-num.ok { color: var(--mint); }
+  .stat-num.warn { color: var(--amber); }
+  .stat-num.bad { color: var(--red); }
+  .stat-label { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+  /* alert */
+  .alert { background: var(--amber-light); border: 1.5px solid var(--amber); border-radius: var(--radius); padding: 1rem 1.25rem; margin-bottom: 1.5rem; display: none; }
+  .alert-title { font-size: 14px; font-weight: 700; color: var(--amber-dark); margin-bottom: 8px; }
+  .alert-item { font-size: 13px; color: var(--amber-dark); padding: 3px 0; }
+
+  /* add form */
+  .card { background: var(--card); border-radius: var(--radius); padding: 1.25rem; margin-bottom: 1.5rem; box-shadow: 0 2px 12px rgba(29,158,117,0.08); }
+  .card-title { font-size: 15px; font-weight: 700; color: var(--mint-dark); margin-bottom: 1rem; display: flex; align-items: center; gap: 6px; }
+  .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+  .field label { font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px; font-weight: 500; }
+  .field input, .field select {
+    width: 100%; padding: 9px 12px; border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm); font-family: inherit; font-size: 14px;
+    background: var(--bg); color: var(--text); outline: none; transition: border 0.15s;
+  }
+  .field input:focus, .field select:focus { border-color: var(--mint); }
+  .field.full { grid-column: 1 / -1; }
+  .btn-add {
+    width: 100%; padding: 11px; background: var(--mint); color: #fff;
+    border: none; border-radius: var(--radius-sm); font-family: inherit;
+    font-size: 15px; font-weight: 700; cursor: pointer; transition: background 0.15s;
+    letter-spacing: 0.04em;
+  }
+  .btn-add:hover { background: var(--mint-dark); }
+
+  /* tabs */
+  .tabs { display: flex; gap: 6px; margin-bottom: 1rem; flex-wrap: wrap; }
+  .tab {
+    padding: 7px 16px; border-radius: 999px; border: 1.5px solid var(--border);
+    background: var(--card); cursor: pointer; font-family: inherit; font-size: 13px;
+    font-weight: 500; color: var(--text-muted); transition: all 0.15s;
+  }
+  .tab.active { background: var(--mint); border-color: var(--mint); color: #fff; }
+
+  /* items */
+  .items { display: grid; gap: 8px; }
+  .item {
+    background: var(--card); border-radius: var(--radius); padding: 14px 16px;
+    display: flex; align-items: center; gap: 12px;
+    box-shadow: 0 2px 8px rgba(29,158,117,0.06);
+    border-left: 4px solid transparent; transition: transform 0.1s;
+  }
+  .item:hover { transform: translateX(2px); }
+  .item.fresh { border-left-color: var(--mint); }
+  .item.soon { border-left-color: var(--amber); background: #fffdf7; }
+  .item.expired { border-left-color: var(--red); background: #fff8f8; }
+  .item-emoji { font-size: 26px; width: 36px; flex-shrink: 0; text-align: center; }
+  .item-body { flex: 1; min-width: 0; }
+  .item-name { font-size: 15px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .item-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .badge {
+    font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px;
+    white-space: nowrap; flex-shrink: 0;
+  }
+  .badge.fresh { background: var(--mint-light); color: var(--mint-dark); }
+  .badge.soon { background: var(--amber-light); color: var(--amber-dark); }
+  .badge.expired { background: var(--red-light); color: var(--red-dark); }
+  .zone-tag {
+    font-size: 11px; color: var(--text-muted); background: var(--bg);
+    border-radius: 6px; padding: 3px 8px; flex-shrink: 0;
+  }
+  .btn-del {
+    background: none; border: none; cursor: pointer; font-size: 18px;
+    color: var(--text-muted); padding: 4px; border-radius: 8px; transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .btn-del:hover { color: var(--red); background: var(--red-light); }
+  .empty { text-align: center; padding: 2.5rem 1rem; color: var(--text-muted); font-size: 15px; }
+  .empty span { font-size: 36px; display: block; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <span class="icon">🧊</span>
+    <h1>れいぞうこ管理</h1>
+    <p>食材の在庫と賞味期限をかんたん管理</p>
+  </div>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-num ok" id="total-count">0</div>
+      <div class="stat-label">総食材数</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num warn" id="soon-count">0</div>
+      <div class="stat-label">期限3日以内</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num bad" id="expired-count">0</div>
+      <div class="stat-label">期限切れ</div>
+    </div>
+  </div>
+
+  <div class="alert" id="alert-box">
+    <div class="alert-title">⚠️ 賞味期限近い！</div>
+    <div id="alert-list"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">＋ 食材を追加</div>
+    <div class="fields">
+      <div class="field full">
+        <label>食材名</label>
+        <input type="text" id="input-name" placeholder="例：牛乳、卵、鶏肉…" />
+      </div>
+      <div class="field">
+        <label>保管場所</label>
+        <select id="input-zone">
+          <option value="冷蔵">🧊 冷蔵</option>
+          <option value="冷凍">❄️ 冷凍</option>
+          <option value="野菜室">🥦 野菜室</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>賞味期限</label>
+        <input type="date" id="input-date" />
+      </div>
+    </div>
+    <button class="btn-add" onclick="addItem()">追加する</button>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('all',this)">🍱 すべて</button>
+    <button class="tab" onclick="switchTab('冷蔵',this)">🧊 冷蔵</button>
+    <button class="tab" onclick="switchTab('冷凍',this)">❄️ 冷凍</button>
+    <button class="tab" onclick="switchTab('野菜室',this)">🥦 野菜室</button>
+  </div>
+
+  <div class="items" id="items-grid"></div>
+</div>
+
+<script>
+const EMOJIS = {牛乳:'🥛',卵:'🥚',肉:'🥩',豚肉:'🥩',鶏肉:'🍗',魚:'🐟',野菜:'🥦',キャベツ:'🥬',にんじん:'🥕',たまねぎ:'🧅',じゃがいも:'🥔',トマト:'🍅',きゅうり:'🥒',ほうれん草:'🥬',チーズ:'🧀',バター:'🧈',ヨーグルト:'🫙',豆腐:'⬜',納豆:'🫙',ご飯:'🍚',パン:'🍞',アイス:'🍦',もやし:'🌱',ねぎ:'🧅',しょうが:'🫚'};
+
+function getEmoji(name) {
+  for (const k of Object.keys(EMOJIS)) { if (name.includes(k)) return EMOJIS[k]; }
+  return '🍱';
+}
+function offsetDate(d) {
+  const dt = new Date(); dt.setDate(dt.getDate()+d); return dt.toISOString().split('T')[0];
+}
+function getDays(dateStr) {
+  const t = new Date(); t.setHours(0,0,0,0);
+  const e = new Date(dateStr); e.setHours(0,0,0,0);
+  return Math.round((e-t)/86400000);
+}
+function getStatus(d) { return d < 0 ? 'expired' : d <= 3 ? 'soon' : 'fresh'; }
+function getDayLabel(d) {
+  if (d < 0) return `期限切れ (${Math.abs(d)}日前)`;
+  if (d === 0) return '今日まで！';
+  return `あと${d}日`;
+}
+
+let items = JSON.parse(localStorage.getItem('fridge-items') || 'null') || [
+  {id:1,name:'牛乳',zone:'冷蔵',date:offsetDate(2)},
+  {id:2,name:'卵',zone:'冷蔵',date:offsetDate(5)},
+  {id:3,name:'鶏肉',zone:'冷凍',date:offsetDate(20)},
+  {id:4,name:'キャベツ',zone:'野菜室',date:offsetDate(-1)},
+  {id:5,name:'ヨーグルト',zone:'冷蔵',date:offsetDate(1)},
+];
+let nextId = Math.max(0,...items.map(i=>i.id))+1;
+let currentTab = 'all';
+
+function save() { localStorage.setItem('fridge-items', JSON.stringify(items)); }
+
+function render() {
+  save();
+  const filtered = currentTab==='all' ? items : items.filter(i=>i.zone===currentTab);
+  const expired = items.filter(i=>getDays(i.date)<0).length;
+  const soon = items.filter(i=>{ const d=getDays(i.date); return d>=0&&d<=3; }).length;
+  document.getElementById('total-count').textContent = items.length;
+  document.getElementById('soon-count').textContent = soon;
+  document.getElementById('expired-count').textContent = expired;
+
+  const alertItems = items.filter(i=>getDays(i.date)<=3);
+  const alertBox = document.getElementById('alert-box');
+  if (alertItems.length) {
+    alertBox.style.display = 'block';
+    document.getElementById('alert-list').innerHTML = alertItems
+      .sort((a,b)=>a.date.localeCompare(b.date))
+      .map(i=>`<div class="alert-item">・${i.name}：${getDayLabel(getDays(i.date))}</div>`).join('');
+  } else { alertBox.style.display = 'none'; }
+
+  const grid = document.getElementById('items-grid');
+  if (!filtered.length) {
+    grid.innerHTML = '<div class="empty"><span>🥢</span>食材がありません</div>';
+    return;
+  }
+  const sorted = [...filtered].sort((a,b)=>a.date.localeCompare(b.date));
+  grid.innerHTML = sorted.map(item => {
+    const d = getDays(item.date);
+    const st = getStatus(d);
+    return `<div class="item ${st}">
+      <div class="item-emoji">${getEmoji(item.name)}</div>
+      <div class="item-body">
+        <div class="item-name">${item.name}</div>
+        <div class="item-sub">期限：${item.date}</div>
+      </div>
+      <span class="zone-tag">${item.zone}</span>
+      <span class="badge ${st}">${getDayLabel(d)}</span>
+      <button class="btn-del" onclick="deleteItem(${item.id})" title="削除">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function addItem() {
+  const name = document.getElementById('input-name').value.trim();
+  const zone = document.getElementById('input-zone').value;
+  const date = document.getElementById('input-date').value;
+  if (!name || !date) { alert('食材名と賞味期限を入力してください'); return; }
+  items.push({id:nextId++,name,zone,date});
+  document.getElementById('input-name').value = '';
+  render();
+}
+
+function deleteItem(id) {
+  if (!confirm('削除しますか？')) return;
+  items = items.filter(i=>i.id!==id);
+  render();
+}
+
+function switchTab(tab, btn) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  render();
+}
+
+document.getElementById('input-date').value = new Date().toISOString().split('T')[0];
+document.getElementById('input-name').addEventListener('keydown', e => { if(e.key==='Enter') addItem(); });
+render();
+</script>
+</body>
+</html>
