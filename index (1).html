@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>れいぞうこ管理</title>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --mint: #1D9E75; --mint-light: #E1F5EE; --mint-dark: #0F6E56;
+    --amber: #EF9F27; --amber-light: #FAEEDA; --amber-dark: #854F0B;
+    --red: #E24B4A; --red-light: #FCEBEB; --red-dark: #A32D2D;
+    --bg: #F7F9F8; --card: #ffffff; --text: #1a2e25; --text-muted: #6b8c7a;
+    --border: rgba(29,158,117,0.15); --radius: 16px; --radius-sm: 10px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Zen Maru Gothic', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+  body::before { content: ''; position: fixed; top: 0; left: 0; right: 0; height: 220px; background: linear-gradient(160deg, #c8f0e0 0%, #d8edf8 100%); z-index: 0; }
+  .container { max-width: 640px; margin: 0 auto; padding: 1.2rem 1rem 4rem; position: relative; z-index: 1; }
+
+  /* top bar */
+  .top-bar { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; margin-bottom: 1.2rem; align-items: stretch; }
+  .stat { background: var(--card); border-radius: var(--radius); padding: 0.8rem 1.2rem; text-align: center; box-shadow: 0 2px 12px rgba(29,158,117,0.08); }
+  .stat-num { font-size: 24px; font-weight: 700; color: var(--amber); }
+  .stat-num.red { color: var(--red); }
+  .stat-label { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+  .btn-add-top {
+    background: var(--mint); color: #fff; border: none; border-radius: var(--radius);
+    font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
+    padding: 0.8rem 1.2rem; box-shadow: 0 2px 12px rgba(29,158,117,0.2);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  }
+  .btn-add-top:hover { background: var(--mint-dark); }
+  .btn-add-top .icon { font-size: 22px; }
+
+  /* alert */
+  .alert { background: var(--amber-light); border: 1.5px solid var(--amber); border-radius: var(--radius); padding: 1rem 1.25rem; margin-bottom: 1.2rem; display: none; }
+  .alert-title { font-size: 14px; font-weight: 700; color: var(--amber-dark); margin-bottom: 6px; }
+  .alert-item { font-size: 13px; color: var(--amber-dark); padding: 2px 0; }
+
+  /* fridge 2col */
+  .section-title { font-size: 14px; font-weight: 700; color: var(--mint-dark); margin-bottom: 10px; }
+  .items { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 1.5rem; }
+  .item {
+    background: var(--card); border-radius: var(--radius-sm); padding: 10px 12px;
+    display: flex; flex-direction: column; gap: 6px;
+    box-shadow: 0 2px 8px rgba(29,158,117,0.06); border-top: 3px solid transparent;
+  }
+  .item.fresh { border-top-color: var(--mint); }
+  .item.soon { border-top-color: var(--amber); background: #fffdf7; }
+  .item-header { display: flex; align-items: center; gap: 6px; }
+  .item-emoji { font-size: 20px; flex-shrink: 0; }
+  .item-name { font-size: 13px; font-weight: 700; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .btn-del { background: none; border: none; cursor: pointer; font-size: 13px; color: var(--text-muted); padding: 2px; border-radius: 6px; flex-shrink: 0; }
+  .btn-del:hover { color: var(--red); background: var(--red-light); }
+  .item-sub { font-size: 10px; color: var(--text-muted); }
+  .item-bottom { display: flex; align-items: center; justify-content: space-between; gap: 4px; }
+  .item-qty { display: flex; align-items: center; gap: 3px; }
+  .qty-btn { background: var(--bg); border: 1.5px solid var(--border); border-radius: 6px; width: 22px; height: 22px; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--mint-dark); font-weight: 700; }
+  .qty-btn:hover { background: var(--mint-light); }
+  .qty-val-input {
+    font-size: 12px; font-weight: 700; width: 38px; text-align: center;
+    border: 1.5px solid var(--border); border-radius: 6px; padding: 2px 4px;
+    background: var(--bg); color: var(--text); font-family: inherit; outline: none;
+  }
+  .qty-val-input:focus { border-color: var(--mint); }
+  .badge { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 999px; white-space: nowrap; }
+  .badge.fresh { background: var(--mint-light); color: var(--mint-dark); }
+  .badge.soon { background: var(--amber-light); color: var(--amber-dark); }
+  .empty { grid-column: 1/-1; text-align: center; padding: 2rem 1rem; color: var(--text-muted); font-size: 14px; }
+  .empty span { font-size: 32px; display: block; margin-bottom: 8px; }
+
+  /* add card */
+  .card { background: var(--card); border-radius: var(--radius); padding: 1.25rem; margin-bottom: 1.2rem; box-shadow: 0 2px 12px rgba(29,158,117,0.08); display: none; }
+  .card.show { display: block; }
+  .card-title { font-size: 15px; font-weight: 700; color: var(--mint-dark); margin-bottom: 1rem; display: flex; align-items: center; justify-content: space-between; }
+  .btn-close-card { background: none; border: none; cursor: pointer; font-size: 20px; color: var(--text-muted); }
+
+  /* palette — drag only, no click highlight */
+  .palette { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 1rem; }
+  .palette-item {
+    width: 56px; height: 56px; border-radius: 12px; border: 2px solid var(--border);
+    background: var(--bg); display: flex; flex-direction: column; align-items: center;
+    justify-content: center; cursor: grab; font-size: 22px; user-select: none; transition: all 0.15s;
+  }
+  .palette-item span { font-size: 9px; color: var(--text-muted); margin-top: 1px; text-align: center; line-height: 1.2; }
+  .palette-item:hover { border-color: var(--mint); background: var(--mint-light); transform: scale(1.08); }
+  .palette-item.dragging { opacity: 0.4; }
+
+  /* drop zone */
+  .drop-label { font-size: 12px; color: var(--text-muted); margin-bottom: 6px; }
+  .drop-zone {
+    border: 2.5px dashed var(--border); border-radius: var(--radius);
+    padding: 12px; min-height: 72px; display: flex; flex-wrap: wrap; gap: 8px;
+    align-items: flex-start; margin-bottom: 1rem; transition: all 0.15s; background: var(--bg);
+  }
+  .drop-zone.dragover { border-color: var(--mint); background: var(--mint-light); }
+  .drop-hint { color: var(--text-muted); font-size: 13px; width: 100%; text-align: center; align-self: center; pointer-events: none; }
+
+  /* cart item */
+  .cart-item {
+    background: var(--card); border: 2px solid var(--mint); border-radius: 12px;
+    padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; min-width: 120px;
+  }
+  .cart-item-top { display: flex; align-items: center; gap: 6px; }
+  .cart-item-emoji { font-size: 18px; }
+  .cart-item-name { font-size: 12px; font-weight: 700; flex: 1; }
+  .cart-item-remove { background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 13px; }
+  .cart-item-remove:hover { color: var(--red); }
+  .cart-item-qty-row { display: flex; align-items: center; gap: 4px; }
+  .cart-qty-btn { background: var(--bg); border: 1.5px solid var(--border); border-radius: 6px; width: 22px; height: 22px; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--mint-dark); font-weight: 700; }
+  .cart-qty-val-input {
+    font-size: 12px; font-weight: 700; width: 42px; text-align: center;
+    border: 1.5px solid var(--border); border-radius: 6px; padding: 2px 4px;
+    background: var(--bg); color: var(--text); font-family: inherit; outline: none;
+  }
+  .cart-qty-val-input:focus { border-color: var(--mint); }
+
+  /* date quick buttons */
+  .cart-date-label { font-size: 10px; color: var(--text-muted); margin-bottom: 3px; }
+  .date-quick { display: flex; flex-wrap: wrap; gap: 3px; }
+  .dq-btn {
+    padding: 5px 9px; border-radius: 999px; border: 1.5px solid var(--border);
+    background: var(--bg); font-family: inherit; font-size: 11px; font-weight: 700;
+    cursor: pointer; color: var(--text-muted); transition: all 0.12s; white-space: nowrap;
+  }
+  .dq-btn:hover { background: var(--mint-light); border-color: var(--mint); color: var(--mint-dark); }
+  .dq-btn.active { background: var(--mint); border-color: var(--mint); color: #fff; }
+  .date-manual-row { display: flex; align-items: center; gap: 4px; margin-top: 4px; }
+  .date-manual-label { font-size: 10px; color: var(--text-muted); white-space: nowrap; }
+  .cart-date-input {
+    flex: 1; font-size: 13px; border: 1.5px solid var(--border); border-radius: 8px;
+    padding: 5px 8px; background: var(--bg); color: var(--text);
+    font-family: inherit; outline: none; min-height: 38px;
+  }
+  .cart-date-input:focus { border-color: var(--mint); }
+
+  /* other row */
+  .other-row { display: none; gap: 8px; margin-bottom: 1rem; align-items: center; }
+  .other-row.show { display: flex; }
+  .other-row input { flex: 1; padding: 9px 12px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); font-family: inherit; font-size: 14px; background: var(--bg); color: var(--text); outline: none; }
+  .other-row input:focus { border-color: var(--mint); }
+  .btn-other-add { padding: 9px 14px; background: var(--mint-light); color: var(--mint-dark); border: 1.5px solid var(--mint); border-radius: var(--radius-sm); font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+
+  /* commit */
+  .commit-row { display: flex; justify-content: flex-end; gap: 10px; align-items: center; }
+  .commit-hint { font-size: 12px; color: var(--text-muted); }
+  .btn-commit { padding: 11px 24px; background: var(--mint); color: #fff; border: none; border-radius: var(--radius-sm); font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
+  .btn-commit:hover { background: var(--mint-dark); }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="top-bar">
+    <div class="stat">
+      <div class="stat-num" id="week-count">0</div>
+      <div class="stat-label">1週間以内</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num red" id="soon-count">0</div>
+      <div class="stat-label">3日以内</div>
+    </div>
+    <button class="btn-add-top" onclick="toggleAddCard()">
+      <span class="icon">＋</span>
+      <span>食材<br>追加</span>
+    </button>
+  </div>
+
+  <div class="alert" id="alert-box">
+    <div class="alert-title">⚠️ もうすぐ期限切れ</div>
+    <div id="alert-list"></div>
+  </div>
+
+  <div class="section-title">🧊 冷蔵庫の中身</div>
+  <div class="items" id="items-grid"></div>
+
+  <div class="card" id="add-card">
+    <div class="card-title">
+      ＋ 食材を追加
+      <button class="btn-close-card" onclick="toggleAddCard()">✕</button>
+    </div>
+
+    <div class="palette" id="palette"></div>
+
+    <div class="other-row" id="other-row">
+      <input type="text" id="other-name" placeholder="食材名を入力" />
+      <button class="btn-other-add" onclick="addOtherToCart()">カートへ</button>
+    </div>
+
+    <div class="drop-label">▼ アイコンをドラッグ＆ドロップ</div>
+    <div class="drop-zone" id="drop-zone">
+      <div class="drop-hint" id="drop-hint">🛒 カートが空です</div>
+    </div>
+
+    <div class="commit-row">
+      <span class="commit-hint" id="commit-hint"></span>
+      <button class="btn-commit" onclick="commitCart()">冷蔵庫に入れる 🧊</button>
+    </div>
+  </div>
+
+</div>
+<script>
+const FOOD_LIST = [
+  { name: '牛乳',       emoji: '🥛', defaultQty: 1 },
+  { name: '卵',         emoji: '🥚', defaultQty: 6 },
+  { name: '豚肉',       emoji: '🥩', defaultQty: 1 },
+  { name: '鶏肉',       emoji: '🍗', defaultQty: 1 },
+  { name: '魚',         emoji: '🐟', defaultQty: 1 },
+  { name: 'にんじん',   emoji: '🥕', defaultQty: 1 },
+  { name: 'たまねぎ',   emoji: '🧅', defaultQty: 1 },
+  { name: 'じゃがいも', emoji: '🥔', defaultQty: 1 },
+  { name: 'トマト',     emoji: '🍅', defaultQty: 1 },
+  { name: 'きゅうり',   emoji: '🥒', defaultQty: 1 },
+  { name: '大根',       emoji: '🫒', defaultQty: 1 },
+  { name: 'キムチ',     emoji: '🌶️',  defaultQty: 1 },
+  { name: 'チーズ',     emoji: '🧀', defaultQty: 1 },
+  { name: 'バター',     emoji: '🧈', defaultQty: 1 },
+  { name: 'パン',       emoji: '🍞', defaultQty: 1 },
+  { name: 'その他',     emoji: '➕', defaultQty: 1, isOther: true },
+];
+
+// クイック日付: 1〜5日後のみ
+const QUICK_DATES = [
+  { label: '1日後', days: 1 },
+  { label: '2日後', days: 2 },
+  { label: '3日後', days: 3 },
+  { label: '4日後', days: 4 },
+  { label: '5日後', days: 5 },
+];
+const DEFAULT_DAYS = 14; // デフォルト賞味期限：2週間後
+
+function offsetDate(days) {
+  const d = new Date(); d.setDate(d.getDate() + days);
+  return d.toISOString().split('T')[0];
+}
+const DEFAULT_DATE = offsetDate(DEFAULT_DAYS);
+
+function getDays(d) {
+  const t=new Date(); t.setHours(0,0,0,0);
+  const e=new Date(d); e.setHours(0,0,0,0);
+  return Math.round((e-t)/86400000);
+}
+function getStatus(d) { return d<=3?'soon':'fresh'; }
+function getDayLabel(d) {
+  if(d<=0) return '今日まで！';
+  return `あと${d}日`;
+}
+
+let items = JSON.parse(localStorage.getItem('fridge-items5') || '[]');
+let nextId = Math.max(0, ...items.map(i=>i.id), 0) + 1;
+let cart = [];
+let dragFood = null;
+
+function save() { localStorage.setItem('fridge-items5', JSON.stringify(items)); }
+
+function toggleAddCard() {
+  document.getElementById('add-card').classList.toggle('show');
+}
+
+// タッチD&D用: 移動中のゴースト要素
+let touchGhost = null;
+let touchFood = null;
+
+function createGhost(el) {
+  const ghost = el.cloneNode(true);
+  ghost.style.cssText = `
+    position: fixed; z-index: 9999; pointer-events: none; opacity: 0.85;
+    width: 60px; height: 60px; border-radius: 12px;
+    background: var(--mint-light); border: 2px solid var(--mint);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    font-size: 22px; transform: scale(1.1);
+  `;
+  document.body.appendChild(ghost);
+  return ghost;
+}
+
+function isOverDropZone(x, y) {
+  const rect = document.getElementById('drop-zone').getBoundingClientRect();
+  return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+}
+
+// palette — drag only, その他だけクリック対応
+function buildPalette() {
+  const pal = document.getElementById('palette');
+  pal.innerHTML = '';
+  FOOD_LIST.forEach(f => {
+    const el = document.createElement('div');
+    el.className = 'palette-item';
+    el.draggable = true;
+    el.innerHTML = `${f.emoji}<span>${f.name}</span>`;
+
+    // PC drag
+    el.addEventListener('dragstart', e => { dragFood = f; el.classList.add('dragging'); e.dataTransfer.effectAllowed='copy'; });
+    el.addEventListener('dragend', () => el.classList.remove('dragging'));
+
+    // スマホ touch
+    el.addEventListener('touchstart', e => {
+      if (f.isOther) return; // その他はタップで処理
+      touchFood = f;
+      const touch = e.touches[0];
+      touchGhost = createGhost(el);
+      touchGhost.style.left = (touch.clientX - 30) + 'px';
+      touchGhost.style.top  = (touch.clientY - 30) + 'px';
+      el.classList.add('dragging');
+      e.preventDefault();
+    }, { passive: false });
+
+    el.addEventListener('touchmove', e => {
+      if (!touchGhost) return;
+      const touch = e.touches[0];
+      touchGhost.style.left = (touch.clientX - 30) + 'px';
+      touchGhost.style.top  = (touch.clientY - 30) + 'px';
+      const dz = document.getElementById('drop-zone');
+      if (isOverDropZone(touch.clientX, touch.clientY)) {
+        dz.classList.add('dragover');
+      } else {
+        dz.classList.remove('dragover');
+      }
+      e.preventDefault();
+    }, { passive: false });
+
+    el.addEventListener('touchend', e => {
+      if (!touchGhost) return;
+      const touch = e.changedTouches[0];
+      touchGhost.remove(); touchGhost = null;
+      el.classList.remove('dragging');
+      document.getElementById('drop-zone').classList.remove('dragover');
+      if (touchFood && isOverDropZone(touch.clientX, touch.clientY)) {
+        addToCart(touchFood);
+      }
+      touchFood = null;
+      e.preventDefault();
+    }, { passive: false });
+
+    // その他だけタップでテキスト入力を開く
+    if (f.isOther) {
+      el.addEventListener('click', () => document.getElementById('other-row').classList.toggle('show'));
+    }
+    pal.appendChild(el);
+  });
+}
+
+const dropZone = document.getElementById('drop-zone');
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.classList.remove('dragover');
+  if (dragFood) {
+    if (dragFood.isOther) { document.getElementById('other-row').classList.add('show'); }
+    else { addToCart(dragFood); }
+    dragFood = null;
+  }
+});
+
+function addToCart(food) {
+  const existing = cart.find(c => c.name === food.name);
+  if (existing) {
+    existing.qty = parseFloat((existing.qty + 1).toFixed(2));
+  } else {
+    cart.push({ name: food.name, emoji: food.emoji, qty: food.defaultQty, date: DEFAULT_DATE });
+  }
+  renderCart();
+}
+
+function addOtherToCart() {
+  const name = document.getElementById('other-name').value.trim();
+  if (!name) return;
+  const existing = cart.find(c => c.name === name);
+  if (existing) { existing.qty++; }
+  else { cart.push({ name, emoji: '📦', qty: 1, date: DEFAULT_DATE }); }
+  document.getElementById('other-name').value = '';
+  document.getElementById('other-row').classList.remove('show');
+  renderCart();
+}
+
+function removeFromCart(name) { cart = cart.filter(c => c.name !== name); renderCart(); }
+
+function changeCartQty(name, delta) {
+  const item = cart.find(c => c.name === name);
+  if (!item) return;
+  const nq = parseFloat((item.qty + delta).toFixed(2));
+  if (nq <= 0) { removeFromCart(name); return; }
+  item.qty = nq; renderCart();
+}
+
+function setCartQtyDirect(name, val) {
+  const item = cart.find(c => c.name === name);
+  if (!item) return;
+  const nq = parseFloat(val);
+  if (!isNaN(nq) && nq > 0) item.qty = nq;
+}
+
+function setCartDate(name, date) {
+  const item = cart.find(c => c.name === name);
+  if (item) item.date = date;
+}
+
+function setCartDateQuick(name, date) {
+  const item = cart.find(c => c.name === name);
+  if (item) { item.date = date; renderCart(); }
+}
+
+function renderCart() {
+  const zone = document.getElementById('drop-zone');
+  const hint = document.getElementById('drop-hint');
+  hint.style.display = cart.length ? 'none' : 'block';
+  zone.querySelectorAll('.cart-item').forEach(el => el.remove());
+  document.getElementById('commit-hint').textContent = cart.length ? `カート: ${cart.length}品` : '';
+
+  cart.forEach(c => {
+    const el = document.createElement('div');
+    el.className = 'cart-item';
+    const quickBtns = QUICK_DATES.map(q => {
+      const d = offsetDate(q.days);
+      const active = c.date === d ? ' active' : '';
+      return `<button class="dq-btn${active}" onclick="setCartDateQuick('${c.name}','${d}')">${q.label}</button>`;
+    }).join('');
+
+    el.innerHTML = `
+      <div class="cart-item-top">
+        <span class="cart-item-emoji">${c.emoji}</span>
+        <span class="cart-item-name">${c.name}</span>
+        <button class="cart-item-remove" onclick="removeFromCart('${c.name}')">✕</button>
+      </div>
+      <div class="cart-item-qty-row">
+        <button class="cart-qty-btn" onclick="changeCartQty('${c.name}',-0.5)">－</button>
+        <input class="cart-qty-val-input" type="number" min="0.1" step="0.1" value="${c.qty}"
+          onchange="setCartQtyDirect('${c.name}',this.value)"
+          onclick="this.select()" />
+        <button class="cart-qty-btn" onclick="changeCartQty('${c.name}',0.5)">＋</button>
+      </div>
+      <div>
+        <div class="cart-date-label">賞味期限（デフォルト：2週間後）</div>
+        <div class="date-quick">${quickBtns}</div>
+        <div class="date-manual-row">
+          <span class="date-manual-label">直接入力：</span>
+          <input class="cart-date-input" type="date" value="${c.date}"
+            onchange="setCartDate('${c.name}',this.value)" />
+        </div>
+      </div>
+    `;
+    zone.appendChild(el);
+  });
+}
+
+function commitCart() {
+  if (!cart.length) { alert('食材をドラッグ＆ドロップしてください'); return; }
+  cart.forEach(c => {
+    const existing = items.find(i => i.name === c.name && i.date === c.date);
+    if (existing) { existing.qty = parseFloat((existing.qty + c.qty).toFixed(2)); }
+    else { items.push({ id: nextId++, name: c.name, emoji: c.emoji, qty: c.qty, date: c.date }); }
+  });
+  cart = [];
+  renderCart();
+  save(); render();
+}
+
+function deleteItem(id) {
+  if (!confirm('削除しますか？')) return;
+  items = items.filter(i => i.id !== id); save(); render();
+}
+
+function changeQty(id, delta) {
+  const item = items.find(i => i.id === id);
+  if (!item) return;
+  const nq = parseFloat((item.qty + delta).toFixed(2));
+  if (nq <= 0) { items = items.filter(i => i.id !== id); }
+  else { item.qty = nq; }
+  save(); render();
+}
+
+function setQtyDirect(id, val) {
+  const item = items.find(i => i.id === id);
+  if (!item) return;
+  const nq = parseFloat(val);
+  if (!isNaN(nq) && nq > 0) { item.qty = nq; save(); }
+}
+
+function render() {
+  // 1週間以内・3日以内（期限切れ除外）
+  const week = items.filter(i => { const d=getDays(i.date); return d>=0 && d<=7; }).length;
+  const soon = items.filter(i => { const d=getDays(i.date); return d>=0 && d<=3; }).length;
+  document.getElementById('week-count').textContent = week;
+  document.getElementById('soon-count').textContent = soon;
+
+  // アラート：3日以内（期限切れ除外）
+  const alertItems = items.filter(i => { const d=getDays(i.date); return d>=0 && d<=3; });
+  const alertBox = document.getElementById('alert-box');
+  if (alertItems.length) {
+    alertBox.style.display = 'block';
+    document.getElementById('alert-list').innerHTML = alertItems
+      .sort((a,b) => a.date.localeCompare(b.date))
+      .map(i => `<div class="alert-item">・${i.name}：${getDayLabel(getDays(i.date))}</div>`).join('');
+  } else { alertBox.style.display = 'none'; }
+
+  // 期限切れは非表示（フィルタして表示しない）
+  const visible = items.filter(i => getDays(i.date) >= 0);
+  const grid = document.getElementById('items-grid');
+  if (!visible.length) { grid.innerHTML = '<div class="empty"><span>🥢</span>食材がありません</div>'; return; }
+  const sorted = [...visible].sort((a,b) => a.date.localeCompare(b.date));
+  grid.innerHTML = sorted.map(item => {
+    const d = getDays(item.date); const st = getStatus(d);
+    return `<div class="item ${st}">
+      <div class="item-header">
+        <span class="item-emoji">${item.emoji}</span>
+        <span class="item-name">${item.name}</span>
+        <button class="btn-del" onclick="deleteItem(${item.id})">✕</button>
+      </div>
+      <div class="item-sub">期限：${item.date}</div>
+      <div class="item-bottom">
+        <div class="item-qty">
+          <button class="qty-btn" onclick="changeQty(${item.id},-0.5)">－</button>
+          <input class="qty-val-input" type="number" min="0.1" step="0.1" value="${item.qty}"
+            onchange="setQtyDirect(${item.id},this.value)" onclick="this.select()" />
+          <button class="qty-btn" onclick="changeQty(${item.id},0.5)">＋</button>
+        </div>
+        <span class="badge ${st}">${getDayLabel(d)}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+buildPalette();
+render();
+renderCart();
+</script>
+</body>
+</html>
